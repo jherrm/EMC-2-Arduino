@@ -6,24 +6,34 @@ ie: 3 axies = 6 pins used. (minimum)
 
 Note concerning switches: Be smart!
   AT LEAST use HOME switches.
-  You'll find life a lot easier if you do...
+  Switches are cheap insurance.
+  You'll find life a lot easier if you use them entirely.
   
   If you choose to build with threaded rod for lead screws but leave out the switches
   You'll have one of two possible outcomes;
     You'll get tired really quickly of resetting the machine by hand.
-    Or worse, you'll forget (only once) to reset it, and upon power up
-    it WILL destroy itself while you go -> WTF!? -> OMFG! -> PANIC! -> FACEPALM!
+    Or worse, you'll forget (only once) to reset it, and upon homing
+    it WILL destroy itself while you go -> WTF!? -> OMG! -> PANIC! -> FACEPALM!
 
  List of axies. All 9 of them.
-     AXIS_0 = X
-     AXIS_1 = Y
-     AXIS_2 = Z
-     AXIS_3 = A
-     AXIS_4 = B
-     AXIS_5 = C
-     AXIS_6 = U
-     AXIS_7 = V
-     AXIS_8 = W
+     AXIS_0 = X (Left/Right)
+     AXIS_1 = Y (Near/Far) Lathes use this for tool depth.
+     AXIS_2 = Z (Up/Down) Not typically used for lathes. Except lathe/mill combo.
+     AXIS_3 = A (Rotation parallel to X axis) lathe chuck.
+     AXIS_4 = B (Rotation parallel to Y axis)
+     AXIS_5 = C (Rotation parallel to Z axis)
+     AXIS_6 = U (Rotation perpendicular to X axis)
+     AXIS_7 = V (Rotation perpendicular to Y axis)
+     AXIS_8 = W (Rotation perpendicular to Z axis)
+
+  DYI robot builders: You can monitor/control this sketch via a serial interface.
+  Example commands:
+  
+    jog x200;
+    jog x-215.25 y1200 z0.002 a5;
+    
+    PS: If you choose to control this with your own interface then also modify the
+    divisor variable further down.
 */
 
 // You'll need this library. Get the interrupt safe version.
@@ -105,40 +115,50 @@ Note concerning switches: Be smart!
 #define vEnablePin -1
 #define wEnablePin -1
 
-// Set to false if your using real switches for MIN positions.
-#define useVirtualMinX true
-#define useVirtualMinY true
-#define useVirtualMinZ true
-#define useVirtualMinA true
-#define useVirtualMinB true
-#define useVirtualMinC true
-#define useVirtualMinU true
-#define useVirtualMinV true
-#define useVirtualMinW true
+#define useEstopSwitch  true
+#define usePowerSwitch  true
+#define useProbe        true
+#define useStartSwitch  true
+#define useStopSwitch   true
+#define usePauseSwitch  true
+#define useResumeSwitch true
+#define useStepSwitch   true
 
-// Set to false if your using real switches for HOME positions.
-#define useVirtualHomeX true
-#define useVirtualHomeY true
-#define useVirtualHomeZ true
-#define useVirtualHomeA true
-#define useVirtualHomeB true
-#define useVirtualHomeC true
-#define useVirtualHomeU true
-#define useVirtualHomeV true
-#define useVirtualHomeW true
+// Set to true if your using real switches for MIN positions.
+#define useRealMinX false
+#define useRealMinY false
+#define useRealMinZ false
+#define useRealMinA false
+#define useRealMinB false
+#define useRealMinC false
+#define useRealMinU false
+#define useRealMinV false
+#define useRealMinW false
+
+// Set to true if your using real switches for HOME positions.
+#define useRealHomeX false
+#define useRealHomeY false
+#define useRealHomeZ false
+#define useRealHomeA false
+#define useRealHomeB false
+#define useRealHomeC false
+#define useRealHomeU false
+#define useRealHomeV false
+#define useRealHomeW false
 
 // Set to false if your using real switches for MAX positions.
-#define useVirtualMaxX true
-#define useVirtualMaxY true
-#define useVirtualMaxZ true
-#define useVirtualMaxA true
-#define useVirtualMaxB true
-#define useVirtualMaxC true
-#define useVirtualMaxU true
-#define useVirtualMaxV true
-#define useVirtualMaxW true
+#define useRealMaxX false
+#define useRealMaxY false
+#define useRealMaxZ false
+#define useRealMaxA false
+#define useRealMaxB false
+#define useRealMaxC false
+#define useRealMaxU false
+#define useRealMaxV false
+#define useRealMaxW false
 
-// If your using REAL switches you'll need real pins (ignored if using virtual switches).
+// If your using REAL switches you'll need real pins (ignored if using Virtual switches).
+// -1 = not used.
 #define xMinPin -1
 #define yMinPin -1
 #define zMinPin -1
@@ -169,7 +189,17 @@ Note concerning switches: Be smart!
 #define vMaxPin -1
 #define wMaxPin -1
 
-// Signal inversion for real switch users.
+#define powerSwitchIsMomentary true // Set to true if your using a momentary switch.
+#define powerPin  A0
+#define eStopPin  A1 // You really, REALLY should have this.
+#define probePin  A2
+#define startPin  A3
+#define stopPin   A4
+#define pausePin  A5
+#define resumePin A6
+#define stepPin   A7
+
+// Signal inversion for real switch users. (false = ground trigger signal, true = +5vdc trigger signal.)
 #define xMinPinInverted false
 #define yMinPinInverted false
 #define zMinPinInverted false
@@ -200,8 +230,17 @@ Note concerning switches: Be smart!
 #define vMaxPinInverted false
 #define wMaxPinInverted false
 
+#define eStopPinInverted  false
+#define powerPinInverted  false
+#define probePinInverted  false
+#define startPinInverted  false
+#define stopPinInverted   false
+#define pausePinInverted  false
+#define resumePinInverted false
+#define stepPinInverted   false
 
 // Where should the VIRTUAL Min switches be set to (ignored if using real switches).
+// Set to whatever you specified in the StepConf wizard.
 #define xMin -5.1
 #define yMin -5.1
 #define zMin -5.1
@@ -213,6 +252,7 @@ Note concerning switches: Be smart!
 #define wMin -5.1
 
 // Where should the VIRTUAL home switches be set to (ignored if using real switches).
+// Set to whatever you specified in the StepConf wizard.
 #define xHome 0
 #define yHome 0
 #define zHome 0
@@ -224,6 +264,7 @@ Note concerning switches: Be smart!
 #define wHome 0
 
 // Where should the VIRTUAL Max switches be set to (ignored if using real switches).
+// Set to whatever you specified in the StepConf wizard.
 #define xMax 15.1
 #define yMax 15.1
 #define zMax 15.1
@@ -233,6 +274,20 @@ Note concerning switches: Be smart!
 #define uMax 15.1
 #define vMax 15.1
 #define wMax 15.1
+
+/*
+  This indicator led will let you know how hard you pushing the Arduino.
+
+  To test: Issue a G0 in the GUI command to send all axies to near min limits then to near max limits.
+  Watch the indicator led as you do this. Adjust "Max Velocity" setting to suit.
+
+  MOSTLY ON  = You can safely go faster.
+  FREQUENT BLINK = This is a safe speed. The best choice.
+  OCCASIONAL BLINK = Your a speed demon. Pushing it to the limits.
+  OFF COMPLETELY = Pushing it too hard. Slow down! The Arduino can't cope, your CNC will break bits and make garbage.
+  
+*/
+#define idleIndicator 13
 
 // Invert direction of movement for an axis by setting to false.
 boolean dirState0=true;
@@ -349,9 +404,18 @@ boolean uMaxStateOld=false;
 boolean vMaxStateOld=false;
 boolean wMaxStateOld=false;
 
+boolean eStopStateOld=false;
+boolean powerStateOld=false;
+boolean probeStateOld=false;
+boolean startStateOld=false;
+boolean stopStateOld=false;
+boolean pauseStateOld=false;
+boolean resumeStateOld=false;
+boolean stepStateOld=false;
+
 long divisor=1000000; // input divisor. Our HAL script wont send the six decimal place floats that EMC cranks out.
                       // A simple workaround is to multply it by 1000000 before sending it over the wire.
-                      // So here we have put the decimal back to get the real numbers.
+                      // So here we have to put the decimal back to get the real numbers.
                       // Used in: processCommand()
 
 void jog(float x, float y, float z, float a, float b, float c, float u, float v, float w)
@@ -369,35 +433,35 @@ void jog(float x, float y, float z, float a, float b, float c, float u, float v,
   // Handle our limit switches.
     // Compressed to save visual space. Otherwise it would be several pages long!
     
-  if(useVirtualMinX==true){if(pos_x > xMin){xMinState=true;}else{xMinState=false;}}else{xMinState=digitalReadFast2(xMinPin);if(xMinPinInverted)xMinState=!xMinState;}
-  if(useVirtualMinY==true){if(pos_y > yMin){yMinState=true;}else{yMinState=false;}}else{yMinState=digitalReadFast2(yMinPin);if(yMinPinInverted)yMinState=!yMinState;}
-  if(useVirtualMinZ==true){if(pos_z > zMin){zMinState=true;}else{zMinState=false;}}else{zMinState=digitalReadFast2(zMinPin);if(zMinPinInverted)zMinState=!zMinState;}
-  if(useVirtualMinA==true){if(pos_a > aMin){aMinState=true;}else{aMinState=false;}}else{aMinState=digitalReadFast2(aMinPin);if(aMinPinInverted)aMinState=!aMinState;}
-  if(useVirtualMinB==true){if(pos_b > bMin){bMinState=true;}else{bMinState=false;}}else{bMinState=digitalReadFast2(bMinPin);if(bMinPinInverted)bMinState=!bMinState;}
-  if(useVirtualMinC==true){if(pos_c > cMin){cMinState=true;}else{cMinState=false;}}else{cMinState=digitalReadFast2(cMinPin);if(cMinPinInverted)cMinState=!cMinState;}
-  if(useVirtualMinU==true){if(pos_u > uMin){uMinState=true;}else{uMinState=false;}}else{uMinState=digitalReadFast2(uMinPin);if(uMinPinInverted)uMinState=!uMinState;}
-  if(useVirtualMinV==true){if(pos_v > vMin){vMinState=true;}else{vMinState=false;}}else{vMinState=digitalReadFast2(vMinPin);if(vMinPinInverted)vMinState=!vMinState;}
-  if(useVirtualMinW==true){if(pos_w > wMin){wMinState=true;}else{wMinState=false;}}else{wMinState=digitalReadFast2(wMinPin);if(wMinPinInverted)wMinState=!wMinState;}
+  if(!useRealMinX){if(pos_x > xMin){xMinState=true;}else{xMinState=false;}}else{xMinState=digitalReadFast2(xMinPin);if(xMinPinInverted)xMinState=!xMinState;}
+  if(!useRealMinY){if(pos_y > yMin){yMinState=true;}else{yMinState=false;}}else{yMinState=digitalReadFast2(yMinPin);if(yMinPinInverted)yMinState=!yMinState;}
+  if(!useRealMinZ){if(pos_z > zMin){zMinState=true;}else{zMinState=false;}}else{zMinState=digitalReadFast2(zMinPin);if(zMinPinInverted)zMinState=!zMinState;}
+  if(!useRealMinA){if(pos_a > aMin){aMinState=true;}else{aMinState=false;}}else{aMinState=digitalReadFast2(aMinPin);if(aMinPinInverted)aMinState=!aMinState;}
+  if(!useRealMinB){if(pos_b > bMin){bMinState=true;}else{bMinState=false;}}else{bMinState=digitalReadFast2(bMinPin);if(bMinPinInverted)bMinState=!bMinState;}
+  if(!useRealMinC){if(pos_c > cMin){cMinState=true;}else{cMinState=false;}}else{cMinState=digitalReadFast2(cMinPin);if(cMinPinInverted)cMinState=!cMinState;}
+  if(!useRealMinU){if(pos_u > uMin){uMinState=true;}else{uMinState=false;}}else{uMinState=digitalReadFast2(uMinPin);if(uMinPinInverted)uMinState=!uMinState;}
+  if(!useRealMinV){if(pos_v > vMin){vMinState=true;}else{vMinState=false;}}else{vMinState=digitalReadFast2(vMinPin);if(vMinPinInverted)vMinState=!vMinState;}
+  if(!useRealMinW){if(pos_w > wMin){wMinState=true;}else{wMinState=false;}}else{wMinState=digitalReadFast2(wMinPin);if(wMinPinInverted)wMinState=!wMinState;}
 
-  if(useVirtualMaxX==true){if(pos_x > xMax){xMaxState=true;}else{xMaxState=false;}}else{xMaxState=digitalReadFast2(xMaxPin);if(xMaxPinInverted)xMaxState=!xMaxState;}
-  if(useVirtualMaxY==true){if(pos_y > yMax){yMaxState=true;}else{yMaxState=false;}}else{yMaxState=digitalReadFast2(yMaxPin);if(yMaxPinInverted)yMaxState=!yMaxState;}
-  if(useVirtualMaxZ==true){if(pos_z > zMax){zMaxState=true;}else{zMaxState=false;}}else{zMaxState=digitalReadFast2(zMaxPin);if(zMaxPinInverted)zMaxState=!zMaxState;}
-  if(useVirtualMaxA==true){if(pos_a > aMax){aMaxState=true;}else{aMaxState=false;}}else{aMaxState=digitalReadFast2(aMaxPin);if(aMaxPinInverted)aMaxState=!aMaxState;}
-  if(useVirtualMaxB==true){if(pos_b > bMax){bMaxState=true;}else{bMaxState=false;}}else{bMaxState=digitalReadFast2(bMaxPin);if(bMaxPinInverted)bMaxState=!bMaxState;}
-  if(useVirtualMaxC==true){if(pos_c > cMax){cMaxState=true;}else{cMaxState=false;}}else{cMaxState=digitalReadFast2(cMaxPin);if(cMaxPinInverted)cMaxState=!cMaxState;}
-  if(useVirtualMaxU==true){if(pos_u > uMax){uMaxState=true;}else{uMaxState=false;}}else{uMaxState=digitalReadFast2(uMaxPin);if(uMaxPinInverted)uMaxState=!uMaxState;}
-  if(useVirtualMaxV==true){if(pos_v > vMax){vMaxState=true;}else{vMaxState=false;}}else{vMaxState=digitalReadFast2(vMaxPin);if(vMaxPinInverted)vMaxState=!vMaxState;}
-  if(useVirtualMaxW==true){if(pos_w > wMax){wMaxState=true;}else{wMaxState=false;}}else{wMaxState=digitalReadFast2(wMaxPin);if(wMaxPinInverted)wMaxState=!wMaxState;}
+  if(!useRealMaxX){if(pos_x > xMax){xMaxState=true;}else{xMaxState=false;}}else{xMaxState=digitalReadFast2(xMaxPin);if(xMaxPinInverted)xMaxState=!xMaxState;}
+  if(!useRealMaxY){if(pos_y > yMax){yMaxState=true;}else{yMaxState=false;}}else{yMaxState=digitalReadFast2(yMaxPin);if(yMaxPinInverted)yMaxState=!yMaxState;}
+  if(!useRealMaxZ){if(pos_z > zMax){zMaxState=true;}else{zMaxState=false;}}else{zMaxState=digitalReadFast2(zMaxPin);if(zMaxPinInverted)zMaxState=!zMaxState;}
+  if(!useRealMaxA){if(pos_a > aMax){aMaxState=true;}else{aMaxState=false;}}else{aMaxState=digitalReadFast2(aMaxPin);if(aMaxPinInverted)aMaxState=!aMaxState;}
+  if(!useRealMaxB){if(pos_b > bMax){bMaxState=true;}else{bMaxState=false;}}else{bMaxState=digitalReadFast2(bMaxPin);if(bMaxPinInverted)bMaxState=!bMaxState;}
+  if(!useRealMaxC){if(pos_c > cMax){cMaxState=true;}else{cMaxState=false;}}else{cMaxState=digitalReadFast2(cMaxPin);if(cMaxPinInverted)cMaxState=!cMaxState;}
+  if(!useRealMaxU){if(pos_u > uMax){uMaxState=true;}else{uMaxState=false;}}else{uMaxState=digitalReadFast2(uMaxPin);if(uMaxPinInverted)uMaxState=!uMaxState;}
+  if(!useRealMaxV){if(pos_v > vMax){vMaxState=true;}else{vMaxState=false;}}else{vMaxState=digitalReadFast2(vMaxPin);if(vMaxPinInverted)vMaxState=!vMaxState;}
+  if(!useRealMaxW){if(pos_w > wMax){wMaxState=true;}else{wMaxState=false;}}else{wMaxState=digitalReadFast2(wMaxPin);if(wMaxPinInverted)wMaxState=!wMaxState;}
 
-  if(useVirtualHomeX==true){if(pos_x > xHome){xHomeState=true;}else{xHomeState=false;}}else{xHomeState=digitalReadFast2(xHomePin);if(xHomePinInverted)xHomeState=!xHomeState;}
-  if(useVirtualHomeY==true){if(pos_y > yHome){yHomeState=true;}else{yHomeState=false;}}else{yHomeState=digitalReadFast2(yHomePin);if(yHomePinInverted)yHomeState=!yHomeState;}
-  if(useVirtualHomeZ==true){if(pos_z > zHome){zHomeState=true;}else{zHomeState=false;}}else{zHomeState=digitalReadFast2(zHomePin);if(zHomePinInverted)zHomeState=!zHomeState;}
-  if(useVirtualHomeA==true){if(pos_a > aHome){aHomeState=true;}else{aHomeState=false;}}else{aHomeState=digitalReadFast2(aHomePin);if(aHomePinInverted)aHomeState=!aHomeState;}
-  if(useVirtualHomeB==true){if(pos_b > bHome){bHomeState=true;}else{bHomeState=false;}}else{bHomeState=digitalReadFast2(bHomePin);if(bHomePinInverted)bHomeState=!bHomeState;}
-  if(useVirtualHomeC==true){if(pos_c > cHome){cHomeState=true;}else{cHomeState=false;}}else{cHomeState=digitalReadFast2(cHomePin);if(cHomePinInverted)cHomeState=!cHomeState;}
-  if(useVirtualHomeU==true){if(pos_u > uHome){uHomeState=true;}else{uHomeState=false;}}else{uHomeState=digitalReadFast2(uHomePin);if(uHomePinInverted)uHomeState=!uHomeState;}
-  if(useVirtualHomeV==true){if(pos_v > vHome){vHomeState=true;}else{vHomeState=false;}}else{vHomeState=digitalReadFast2(vHomePin);if(vHomePinInverted)vHomeState=!vHomeState;}
-  if(useVirtualHomeW==true){if(pos_w > wHome){wHomeState=true;}else{wHomeState=false;}}else{wHomeState=digitalReadFast2(wHomePin);if(wHomePinInverted)wHomeState=!wHomeState;}
+  if(!useRealHomeX){if(pos_x > xHome){xHomeState=true;}else{xHomeState=false;}}else{xHomeState=digitalReadFast2(xHomePin);if(xHomePinInverted)xHomeState=!xHomeState;}
+  if(!useRealHomeY){if(pos_y > yHome){yHomeState=true;}else{yHomeState=false;}}else{yHomeState=digitalReadFast2(yHomePin);if(yHomePinInverted)yHomeState=!yHomeState;}
+  if(!useRealHomeZ){if(pos_z > zHome){zHomeState=true;}else{zHomeState=false;}}else{zHomeState=digitalReadFast2(zHomePin);if(zHomePinInverted)zHomeState=!zHomeState;}
+  if(!useRealHomeA){if(pos_a > aHome){aHomeState=true;}else{aHomeState=false;}}else{aHomeState=digitalReadFast2(aHomePin);if(aHomePinInverted)aHomeState=!aHomeState;}
+  if(!useRealHomeB){if(pos_b > bHome){bHomeState=true;}else{bHomeState=false;}}else{bHomeState=digitalReadFast2(bHomePin);if(bHomePinInverted)bHomeState=!bHomeState;}
+  if(!useRealHomeC){if(pos_c > cHome){cHomeState=true;}else{cHomeState=false;}}else{cHomeState=digitalReadFast2(cHomePin);if(cHomePinInverted)cHomeState=!cHomeState;}
+  if(!useRealHomeU){if(pos_u > uHome){uHomeState=true;}else{uHomeState=false;}}else{uHomeState=digitalReadFast2(uHomePin);if(uHomePinInverted)uHomeState=!uHomeState;}
+  if(!useRealHomeV){if(pos_v > vHome){vHomeState=true;}else{vHomeState=false;}}else{vHomeState=digitalReadFast2(vHomePin);if(vHomePinInverted)vHomeState=!vHomeState;}
+  if(!useRealHomeW){if(pos_w > wHome){wHomeState=true;}else{wHomeState=false;}}else{wHomeState=digitalReadFast2(wHomePin);if(wHomePinInverted)wHomeState=!wHomeState;}
 
   if(xMinState != xMinStateOld){xMinStateOld=xMinState;Serial.print("x");Serial.print(xMinState);}
   if(yMinState != yMinStateOld){yMinStateOld=yMinState;Serial.print("y");Serial.print(yMinState);}
@@ -429,15 +493,15 @@ void jog(float x, float y, float z, float a, float b, float c, float u, float v,
   if(vMaxState != vMaxStateOld){vMaxStateOld=vMaxState;Serial.print("v");Serial.print(vMaxState+1);}
   if(wMaxState != wMaxStateOld){wMaxStateOld=wMaxState;Serial.print("w");Serial.print(wMaxState+1);}
 
-  stepper0Goto=pos_x*stepsPerInchX*2;
-  stepper1Goto=pos_y*stepsPerInchY*2;
-  stepper2Goto=pos_z*stepsPerInchZ*2; // we need the *2 as we're driving a flip-flop routine (in stepLight function)
-  stepper3Goto=pos_a*stepsPerInchA*2;
-  stepper4Goto=pos_b*stepsPerInchB*2;
-  stepper5Goto=pos_c*stepsPerInchC*2;
-  stepper6Goto=pos_u*stepsPerInchU*2;
-  stepper7Goto=pos_v*stepsPerInchV*2;
-  stepper8Goto=pos_w*stepsPerInchW*2;
+  if(xMinState && !xMaxState)stepper0Goto=pos_x*stepsPerInchX*2;
+  if(yMinState && !yMaxState)stepper1Goto=pos_y*stepsPerInchY*2;
+  if(zMinState && !zMaxState)stepper2Goto=pos_z*stepsPerInchZ*2; // we need the *2 as we're driving a flip-flop routine (in stepLight function)
+  if(aMinState && !aMaxState)stepper3Goto=pos_a*stepsPerInchA*2;
+  if(bMinState && !bMaxState)stepper4Goto=pos_b*stepsPerInchB*2;
+  if(cMinState && !cMaxState)stepper5Goto=pos_c*stepsPerInchC*2;
+  if(uMinState && !uMaxState)stepper6Goto=pos_u*stepsPerInchU*2;
+  if(vMinState && !vMaxState)stepper7Goto=pos_v*stepsPerInchV*2;
+  if(wMinState && !wMaxState)stepper8Goto=pos_w*stepsPerInchW*2;
 
 }
 
@@ -469,7 +533,7 @@ void processCommand()
     default: ptr=0; break;
     }
   }
-
+  // An Optional LCD Readout call could go here.
   jog(xx,yy,zz,aa,bb,cc,uu,vv,ww);
 }
 
@@ -479,70 +543,24 @@ void stepLight() // Set by jog() && Used by loop()
   if(curTime - stepTimeOld >= minStepTime)
   {
     stepState=!stepState;
-    
+    int busy=0;
 
-    if(stepper0Pos != stepper0Goto){if(stepper0Pos > stepper0Goto){digitalWriteFast2(dirPin0,!dirState0);digitalWriteFast2(stepPin0,stepState);stepper0Pos--;}else{digitalWriteFast2(dirPin0, dirState0);digitalWriteFast2(stepPin0,stepState);stepper0Pos++;}}
-    if(stepper1Pos != stepper1Goto){if(stepper1Pos > stepper1Goto){digitalWriteFast2(dirPin1,!dirState1);digitalWriteFast2(stepPin1,stepState);stepper1Pos--;}else{digitalWriteFast2(dirPin1, dirState1);digitalWriteFast2(stepPin1,stepState);stepper1Pos++;}}
-    if(stepper2Pos != stepper2Goto){if(stepper2Pos > stepper2Goto){digitalWriteFast2(dirPin2,!dirState2);digitalWriteFast2(stepPin2,stepState);stepper2Pos--;}else{digitalWriteFast2(dirPin2, dirState2);digitalWriteFast2(stepPin2,stepState);stepper2Pos++;}}
-    if(stepper3Pos != stepper3Goto){if(stepper3Pos > stepper3Goto){digitalWriteFast2(dirPin3,!dirState3);digitalWriteFast2(stepPin3,stepState);stepper3Pos--;}else{digitalWriteFast2(dirPin3, dirState3);digitalWriteFast2(stepPin3,stepState);stepper3Pos++;}}
-    if(stepper4Pos != stepper4Goto){if(stepper4Pos > stepper4Goto){digitalWriteFast2(dirPin4,!dirState4);digitalWriteFast2(stepPin4,stepState);stepper4Pos--;}else{digitalWriteFast2(dirPin4, dirState4);digitalWriteFast2(stepPin4,stepState);stepper4Pos++;}}
-    if(stepper5Pos != stepper5Goto){if(stepper5Pos > stepper5Goto){digitalWriteFast2(dirPin5,!dirState5);digitalWriteFast2(stepPin5,stepState);stepper5Pos--;}else{digitalWriteFast2(dirPin5, dirState5);digitalWriteFast2(stepPin5,stepState);stepper5Pos++;}}
-    if(stepper6Pos != stepper6Goto){if(stepper6Pos > stepper6Goto){digitalWriteFast2(dirPin6,!dirState6);digitalWriteFast2(stepPin6,stepState);stepper6Pos--;}else{digitalWriteFast2(dirPin6, dirState6);digitalWriteFast2(stepPin6,stepState);stepper6Pos++;}}
-    if(stepper7Pos != stepper7Goto){if(stepper7Pos > stepper7Goto){digitalWriteFast2(dirPin7,!dirState7);digitalWriteFast2(stepPin7,stepState);stepper7Pos--;}else{digitalWriteFast2(dirPin7, dirState7);digitalWriteFast2(stepPin7,stepState);stepper7Pos++;}}
-    if(stepper8Pos != stepper8Goto){if(stepper8Pos > stepper8Goto){digitalWriteFast2(dirPin8,!dirState8);digitalWriteFast2(stepPin8,stepState);stepper8Pos--;}else{digitalWriteFast2(dirPin8, dirState8);digitalWriteFast2(stepPin8,stepState);stepper8Pos++;}}
+    if(stepper0Pos != stepper0Goto){busy++;if(stepper0Pos > stepper0Goto){digitalWriteFast2(dirPin0,!dirState0);digitalWriteFast2(stepPin0,stepState);stepper0Pos--;}else{digitalWriteFast2(dirPin0, dirState0);digitalWriteFast2(stepPin0,stepState);stepper0Pos++;}}
+    if(stepper1Pos != stepper1Goto){busy++;if(stepper1Pos > stepper1Goto){digitalWriteFast2(dirPin1,!dirState1);digitalWriteFast2(stepPin1,stepState);stepper1Pos--;}else{digitalWriteFast2(dirPin1, dirState1);digitalWriteFast2(stepPin1,stepState);stepper1Pos++;}}
+    if(stepper2Pos != stepper2Goto){busy++;if(stepper2Pos > stepper2Goto){digitalWriteFast2(dirPin2,!dirState2);digitalWriteFast2(stepPin2,stepState);stepper2Pos--;}else{digitalWriteFast2(dirPin2, dirState2);digitalWriteFast2(stepPin2,stepState);stepper2Pos++;}}
+    if(stepper3Pos != stepper3Goto){busy++;if(stepper3Pos > stepper3Goto){digitalWriteFast2(dirPin3,!dirState3);digitalWriteFast2(stepPin3,stepState);stepper3Pos--;}else{digitalWriteFast2(dirPin3, dirState3);digitalWriteFast2(stepPin3,stepState);stepper3Pos++;}}
+    if(stepper4Pos != stepper4Goto){busy++;if(stepper4Pos > stepper4Goto){digitalWriteFast2(dirPin4,!dirState4);digitalWriteFast2(stepPin4,stepState);stepper4Pos--;}else{digitalWriteFast2(dirPin4, dirState4);digitalWriteFast2(stepPin4,stepState);stepper4Pos++;}}
+    if(stepper5Pos != stepper5Goto){busy++;if(stepper5Pos > stepper5Goto){digitalWriteFast2(dirPin5,!dirState5);digitalWriteFast2(stepPin5,stepState);stepper5Pos--;}else{digitalWriteFast2(dirPin5, dirState5);digitalWriteFast2(stepPin5,stepState);stepper5Pos++;}}
+    if(stepper6Pos != stepper6Goto){busy++;if(stepper6Pos > stepper6Goto){digitalWriteFast2(dirPin6,!dirState6);digitalWriteFast2(stepPin6,stepState);stepper6Pos--;}else{digitalWriteFast2(dirPin6, dirState6);digitalWriteFast2(stepPin6,stepState);stepper6Pos++;}}
+    if(stepper7Pos != stepper7Goto){busy++;if(stepper7Pos > stepper7Goto){digitalWriteFast2(dirPin7,!dirState7);digitalWriteFast2(stepPin7,stepState);stepper7Pos--;}else{digitalWriteFast2(dirPin7, dirState7);digitalWriteFast2(stepPin7,stepState);stepper7Pos++;}}
+    if(stepper8Pos != stepper8Goto){busy++;if(stepper8Pos > stepper8Goto){digitalWriteFast2(dirPin8,!dirState8);digitalWriteFast2(stepPin8,stepState);stepper8Pos--;}else{digitalWriteFast2(dirPin8, dirState8);digitalWriteFast2(stepPin8,stepState);stepper8Pos++;}}
+    if(busy){digitalWriteFast2(idleIndicator,LOW);}else{digitalWriteFast2(idleIndicator,HIGH);}
 
     stepTimeOld=curTime;
   }
 }
 
-void setup()
-{
-  pinMode(xEnablePin,OUTPUT);digitalWrite(xEnablePin,LOW);
-  pinMode(yEnablePin,OUTPUT);digitalWrite(yEnablePin,LOW);
-  pinMode(zEnablePin,OUTPUT);digitalWrite(zEnablePin,LOW);
-  pinMode(aEnablePin,OUTPUT);digitalWrite(aEnablePin,LOW);
-  pinMode(bEnablePin,OUTPUT);digitalWrite(bEnablePin,LOW);
-  pinMode(cEnablePin,OUTPUT);digitalWrite(cEnablePin,LOW);
-  pinMode(uEnablePin,OUTPUT);digitalWrite(uEnablePin,LOW);
-  pinMode(vEnablePin,OUTPUT);digitalWrite(vEnablePin,LOW);
-  pinMode(wEnablePin,OUTPUT);digitalWrite(wEnablePin,LOW);
-
-  pinMode(stepPin0,OUTPUT);
-  pinMode(stepPin1,OUTPUT);
-  pinMode(stepPin2,OUTPUT);
-  pinMode(stepPin3,OUTPUT);
-  pinMode(stepPin4,OUTPUT);
-  pinMode(stepPin5,OUTPUT);
-  pinMode(stepPin6,OUTPUT);
-  pinMode(stepPin7,OUTPUT);
-  pinMode(stepPin8,OUTPUT);
-  
-  pinMode(dirPin0,OUTPUT);
-  pinMode(dirPin1,OUTPUT);
-  pinMode(dirPin2,OUTPUT);
-  pinMode(dirPin3,OUTPUT);
-  pinMode(dirPin4,OUTPUT);
-  pinMode(dirPin5,OUTPUT);
-  pinMode(dirPin6,OUTPUT);
-  pinMode(dirPin7,OUTPUT);
-  pinMode(dirPin8,OUTPUT);
-
-  pinMode(chanXms1,OUTPUT);pinMode(chanXms2,OUTPUT);pinMode(chanXms3,OUTPUT);
-  pinMode(chanYms1,OUTPUT);pinMode(chanYms2,OUTPUT);pinMode(chanYms3,OUTPUT);
-  pinMode(chanZms1,OUTPUT);pinMode(chanZms2,OUTPUT);pinMode(chanZms3,OUTPUT);
-  pinMode(chanAms1,OUTPUT);pinMode(chanAms2,OUTPUT);pinMode(chanAms3,OUTPUT);
-  pinMode(chanBms1,OUTPUT);pinMode(chanBms2,OUTPUT);pinMode(chanBms3,OUTPUT);
-  pinMode(chanCms1,OUTPUT);pinMode(chanCms2,OUTPUT);pinMode(chanCms3,OUTPUT);
-  pinMode(chanUms1,OUTPUT);pinMode(chanUms2,OUTPUT);pinMode(chanUms3,OUTPUT);
-  pinMode(chanVms1,OUTPUT);pinMode(chanVms2,OUTPUT);pinMode(chanVms3,OUTPUT);
-  pinMode(chanWms1,OUTPUT);pinMode(chanWms2,OUTPUT);pinMode(chanWms3,OUTPUT);
-
-  stepMode('ALL',1);
-  Serial.begin(BAUD);
-  sofar=0;
-}
-
-void stepMode(char axis, int mode) // May be omitted in the future. (Undecided)
+void stepMode(int axis, int mode) // May be omitted in the future. (Undecided)
 {
   // called just once during setup()
   
@@ -566,23 +584,136 @@ void stepMode(char axis, int mode) // May be omitted in the future. (Undecided)
   if(mode>=4 && mode<=7){ms1=LOW;ms2=HIGH;ms3=LOW;count=4;}
   if(mode>=2 && mode<=3){ms1=HIGH;ms2=HIGH;ms3=LOW;count=2;}
   if(mode<=1){ms1=HIGH;ms2=HIGH;ms3=HIGH;count=1;}
-  if(axis == 'X' || 'ALL'){if(mode!=stepModeX){digitalWriteFast2(chanXms1,ms1);digitalWriteFast2(chanXms2,ms2);digitalWriteFast2(chanXms3,ms3);stepModeX=count;}}
-  if(axis == 'Y' || 'ALL'){if(mode!=stepModeY){digitalWriteFast2(chanYms1,ms1);digitalWriteFast2(chanYms2,ms2);digitalWriteFast2(chanYms3,ms3);stepModeY=count;}}
-  if(axis == 'Z' || 'ALL'){if(mode!=stepModeZ){digitalWriteFast2(chanZms1,ms1);digitalWriteFast2(chanZms2,ms2);digitalWriteFast2(chanZms3,ms3);stepModeZ=count;}}
-  if(axis == 'A' || 'ALL'){if(mode!=stepModeA){digitalWriteFast2(chanAms1,ms1);digitalWriteFast2(chanAms2,ms2);digitalWriteFast2(chanAms3,ms3);stepModeA=count;}}
-  if(axis == 'B' || 'ALL'){if(mode!=stepModeB){digitalWriteFast2(chanBms1,ms1);digitalWriteFast2(chanBms2,ms2);digitalWriteFast2(chanBms3,ms3);stepModeB=count;}}
-  if(axis == 'C' || 'ALL'){if(mode!=stepModeC){digitalWriteFast2(chanCms1,ms1);digitalWriteFast2(chanCms2,ms2);digitalWriteFast2(chanCms3,ms3);stepModeC=count;}}
-  if(axis == 'U' || 'ALL'){if(mode!=stepModeU){digitalWriteFast2(chanUms1,ms1);digitalWriteFast2(chanUms2,ms2);digitalWriteFast2(chanUms3,ms3);stepModeU=count;}}
-  if(axis == 'V' || 'ALL'){if(mode!=stepModeV){digitalWriteFast2(chanVms1,ms1);digitalWriteFast2(chanVms2,ms2);digitalWriteFast2(chanVms3,ms3);stepModeV=count;}}
-  if(axis == 'W' || 'ALL'){if(mode!=stepModeW){digitalWriteFast2(chanWms1,ms1);digitalWriteFast2(chanWms2,ms2);digitalWriteFast2(chanWms3,ms3);stepModeW=count;}}
+  if(axis == 0 || 9){if(mode!=stepModeX){digitalWriteFast2(chanXms1,ms1);digitalWriteFast2(chanXms2,ms2);digitalWriteFast2(chanXms3,ms3);stepModeX=count;}}
+  if(axis == 1 || 9){if(mode!=stepModeY){digitalWriteFast2(chanYms1,ms1);digitalWriteFast2(chanYms2,ms2);digitalWriteFast2(chanYms3,ms3);stepModeY=count;}}
+  if(axis == 2 || 9){if(mode!=stepModeZ){digitalWriteFast2(chanZms1,ms1);digitalWriteFast2(chanZms2,ms2);digitalWriteFast2(chanZms3,ms3);stepModeZ=count;}}
+  if(axis == 3 || 9){if(mode!=stepModeA){digitalWriteFast2(chanAms1,ms1);digitalWriteFast2(chanAms2,ms2);digitalWriteFast2(chanAms3,ms3);stepModeA=count;}}
+  if(axis == 4 || 9){if(mode!=stepModeB){digitalWriteFast2(chanBms1,ms1);digitalWriteFast2(chanBms2,ms2);digitalWriteFast2(chanBms3,ms3);stepModeB=count;}}
+  if(axis == 5 || 9){if(mode!=stepModeC){digitalWriteFast2(chanCms1,ms1);digitalWriteFast2(chanCms2,ms2);digitalWriteFast2(chanCms3,ms3);stepModeC=count;}}
+  if(axis == 6 || 9){if(mode!=stepModeU){digitalWriteFast2(chanUms1,ms1);digitalWriteFast2(chanUms2,ms2);digitalWriteFast2(chanUms3,ms3);stepModeU=count;}}
+  if(axis == 7 || 9){if(mode!=stepModeV){digitalWriteFast2(chanVms1,ms1);digitalWriteFast2(chanVms2,ms2);digitalWriteFast2(chanVms3,ms3);stepModeV=count;}}
+  if(axis == 8 || 9){if(mode!=stepModeW){digitalWriteFast2(chanWms1,ms1);digitalWriteFast2(chanWms2,ms2);digitalWriteFast2(chanWms3,ms3);stepModeW=count;}}
+}
+
+void setup()
+{
+  // Setup Min limit switches.
+  if(useRealMinX){pinMode(xMinPin,INPUT);if(!xMinPinInverted)digitalWriteFast2(xMinPin,HIGH);}
+  if(useRealMinY){pinMode(yMinPin,INPUT);if(!yMinPinInverted)digitalWriteFast2(yMinPin,HIGH);}
+  if(useRealMinZ){pinMode(zMinPin,INPUT);if(!zMinPinInverted)digitalWriteFast2(zMinPin,HIGH);}
+  if(useRealMinA){pinMode(aMinPin,INPUT);if(!aMinPinInverted)digitalWriteFast2(aMinPin,HIGH);}
+  if(useRealMinB){pinMode(bMinPin,INPUT);if(!bMinPinInverted)digitalWriteFast2(bMinPin,HIGH);}
+  if(useRealMinC){pinMode(cMinPin,INPUT);if(!cMinPinInverted)digitalWriteFast2(cMinPin,HIGH);}
+  if(useRealMinU){pinMode(uMinPin,INPUT);if(!uMinPinInverted)digitalWriteFast2(uMinPin,HIGH);}
+  if(useRealMinV){pinMode(vMinPin,INPUT);if(!vMinPinInverted)digitalWriteFast2(vMinPin,HIGH);}
+  if(useRealMinW){pinMode(wMinPin,INPUT);if(!wMinPinInverted)digitalWriteFast2(wMinPin,HIGH);}
+
+  // Setup Max limit switches.
+  if(useRealMaxX){pinMode(xMaxPin,INPUT);if(!xMaxPinInverted)digitalWriteFast2(xMaxPin,HIGH);}
+  if(useRealMaxY){pinMode(yMaxPin,INPUT);if(!yMaxPinInverted)digitalWriteFast2(yMaxPin,HIGH);}
+  if(useRealMaxZ){pinMode(zMaxPin,INPUT);if(!zMaxPinInverted)digitalWriteFast2(zMaxPin,HIGH);}
+  if(useRealMaxA){pinMode(aMaxPin,INPUT);if(!aMaxPinInverted)digitalWriteFast2(aMaxPin,HIGH);}
+  if(useRealMaxB){pinMode(bMaxPin,INPUT);if(!bMaxPinInverted)digitalWriteFast2(bMaxPin,HIGH);}
+  if(useRealMaxC){pinMode(cMaxPin,INPUT);if(!cMaxPinInverted)digitalWriteFast2(cMaxPin,HIGH);}
+  if(useRealMaxU){pinMode(uMaxPin,INPUT);if(!uMaxPinInverted)digitalWriteFast2(uMaxPin,HIGH);}
+  if(useRealMaxV){pinMode(vMaxPin,INPUT);if(!vMaxPinInverted)digitalWriteFast2(vMaxPin,HIGH);}
+  if(useRealMaxW){pinMode(wMaxPin,INPUT);if(!wMaxPinInverted)digitalWriteFast2(wMaxPin,HIGH);}
+
+  // Setup Homing switches.
+  if(useRealHomeX){pinMode(xHomePin,INPUT);if(!xHomePinInverted)digitalWriteFast2(xHomePin,HIGH);}
+  if(useRealHomeY){pinMode(yHomePin,INPUT);if(!yHomePinInverted)digitalWriteFast2(yHomePin,HIGH);}
+  if(useRealHomeZ){pinMode(zHomePin,INPUT);if(!zHomePinInverted)digitalWriteFast2(zHomePin,HIGH);}
+  if(useRealHomeA){pinMode(aHomePin,INPUT);if(!aHomePinInverted)digitalWriteFast2(aHomePin,HIGH);}
+  if(useRealHomeB){pinMode(bHomePin,INPUT);if(!bHomePinInverted)digitalWriteFast2(bHomePin,HIGH);}
+  if(useRealHomeC){pinMode(cHomePin,INPUT);if(!cHomePinInverted)digitalWriteFast2(cHomePin,HIGH);}
+  if(useRealHomeU){pinMode(uHomePin,INPUT);if(!uHomePinInverted)digitalWriteFast2(uHomePin,HIGH);}
+  if(useRealHomeV){pinMode(vHomePin,INPUT);if(!vHomePinInverted)digitalWriteFast2(vHomePin,HIGH);}
+  if(useRealHomeW){pinMode(wHomePin,INPUT);if(!wHomePinInverted)digitalWriteFast2(wHomePin,HIGH);}
+
+  // Enable stepper drivers.
+  pinMode(xEnablePin,OUTPUT);digitalWrite(xEnablePin,LOW);
+  pinMode(yEnablePin,OUTPUT);digitalWrite(yEnablePin,LOW);
+  pinMode(zEnablePin,OUTPUT);digitalWrite(zEnablePin,LOW);
+  pinMode(aEnablePin,OUTPUT);digitalWrite(aEnablePin,LOW);
+  pinMode(bEnablePin,OUTPUT);digitalWrite(bEnablePin,LOW);
+  pinMode(cEnablePin,OUTPUT);digitalWrite(cEnablePin,LOW);
+  pinMode(uEnablePin,OUTPUT);digitalWrite(uEnablePin,LOW);
+  pinMode(vEnablePin,OUTPUT);digitalWrite(vEnablePin,LOW);
+  pinMode(wEnablePin,OUTPUT);digitalWrite(wEnablePin,LOW);
+
+  // Setup step pins.
+  pinMode(stepPin0,OUTPUT);
+  pinMode(stepPin1,OUTPUT);
+  pinMode(stepPin2,OUTPUT);
+  pinMode(stepPin3,OUTPUT);
+  pinMode(stepPin4,OUTPUT);
+  pinMode(stepPin5,OUTPUT);
+  pinMode(stepPin6,OUTPUT);
+  pinMode(stepPin7,OUTPUT);
+  pinMode(stepPin8,OUTPUT);
+  
+  // Setup dir pins.
+  pinMode(dirPin0,OUTPUT);
+  pinMode(dirPin1,OUTPUT);
+  pinMode(dirPin2,OUTPUT);
+  pinMode(dirPin3,OUTPUT);
+  pinMode(dirPin4,OUTPUT);
+  pinMode(dirPin5,OUTPUT);
+  pinMode(dirPin6,OUTPUT);
+  pinMode(dirPin7,OUTPUT);
+  pinMode(dirPin8,OUTPUT);
+
+  // Setup microStepping pins.
+  pinMode(chanXms1,OUTPUT);pinMode(chanXms2,OUTPUT);pinMode(chanXms3,OUTPUT);
+  pinMode(chanYms1,OUTPUT);pinMode(chanYms2,OUTPUT);pinMode(chanYms3,OUTPUT);
+  pinMode(chanZms1,OUTPUT);pinMode(chanZms2,OUTPUT);pinMode(chanZms3,OUTPUT);
+  pinMode(chanAms1,OUTPUT);pinMode(chanAms2,OUTPUT);pinMode(chanAms3,OUTPUT);
+  pinMode(chanBms1,OUTPUT);pinMode(chanBms2,OUTPUT);pinMode(chanBms3,OUTPUT);
+  pinMode(chanCms1,OUTPUT);pinMode(chanCms2,OUTPUT);pinMode(chanCms3,OUTPUT);
+  pinMode(chanUms1,OUTPUT);pinMode(chanUms2,OUTPUT);pinMode(chanUms3,OUTPUT);
+  pinMode(chanVms1,OUTPUT);pinMode(chanVms2,OUTPUT);pinMode(chanVms3,OUTPUT);
+  pinMode(chanWms1,OUTPUT);pinMode(chanWms2,OUTPUT);pinMode(chanWms3,OUTPUT);
+  
+  // Setup eStop, power and probe pins.
+  if(useEstopSwitch){pinMode(eStopPin,INPUT);if(!eStopPinInverted){digitalWriteFast2(eStopPin,HIGH);}}
+  if(usePowerSwitch){pinMode(powerPin,INPUT);if(!powerPinInverted){digitalWriteFast2(powerPin,HIGH);}}
+  if(useProbe){pinMode(probePin,INPUT);if(!probePinInverted){digitalWriteFast2(probePin,HIGH);}}
+  if(useStartSwitch){pinMode(startPin,INPUT);if(!startPinInverted){digitalWriteFast2(startPin,HIGH);}}
+  if(useStopSwitch){pinMode(stopPin,INPUT);if(!stopPinInverted){digitalWriteFast2(stopPin,HIGH);}}
+  if(usePauseSwitch){pinMode(pausePin,INPUT);if(!pausePinInverted){digitalWriteFast2(pausePin,HIGH);}}
+  if(useResumeSwitch){pinMode(resumePin,INPUT);if(!resumePinInverted){digitalWriteFast2(resumePin,HIGH);}}
+  if(useStepSwitch){pinMode(stepPin,INPUT);if(!stepPinInverted){digitalWriteFast2(stepPin,HIGH);}}
+
+  // Setup idle indicator led.
+  pinMode(idleIndicator,OUTPUT);
+
+  // Actually SET our microStepping mode. (If you must change this, re-adjust your stepsPerInch settings.)
+  stepMode(9,1);
+  
+  // Setup serial link.
+  Serial.begin(BAUD);
+  
+  // Initialize serial command buffer.
+  sofar=0;
 }
 
 void loop()
 {
+  if(useEstopSwitch==true){boolean eStopState=digitalReadFast2(eStopPin);if(eStopPinInverted){eStopState=!eStopState;}if(eStopState != eStopStateOld || eStopStateOld){eStopStateOld=eStopState;Serial.print("e");Serial.println(eStopState);delay(500);}}
+  if(usePowerSwitch==true){boolean powerState=digitalReadFast2(powerPin);if(powerPinInverted){powerState=!powerState;}if(powerState != powerStateOld){powerStateOld=powerState;if(powerSwitchIsMomentary){Serial.println("pt");}else{Serial.print("p");Serial.println(powerState);}}}
+  if(useProbe==true){boolean probeState=digitalReadFast2(probePin);if(probePinInverted){probeState=!probeState;}if(probeState != probeStateOld){probeStateOld=probeState;Serial.print("P");Serial.println(probeState);}}
+  if(useStartSwitch==true){boolean startState=digitalReadFast2(startPin);if(startPinInverted){startState=!startState;}if(startState != startStateOld){startStateOld=startState;Serial.print("h");Serial.println(startState);}}
+  if(useStopSwitch==true){boolean stopState=digitalReadFast2(stopPin);if(stopPinInverted){stopState=!stopState;}if(stopState != stopStateOld){stopStateOld=stopState;Serial.print("h");Serial.println(stopState+2);}}
+  if(usePauseSwitch==true){boolean pauseState=digitalReadFast2(pausePin);if(pausePinInverted){pauseState=!pauseState;}if(pauseState != pauseStateOld){pauseStateOld=pauseState;Serial.print("h");Serial.println(pauseState+4);}}
+  if(useResumeSwitch==true){boolean resumeState=digitalReadFast2(resumePin);if(resumePinInverted){resumeState=!resumeState;}if(resumeState != resumeStateOld){resumeStateOld=resumeState;Serial.print("h");Serial.println(resumeState+6);}}
+  if(useStepSwitch==true){boolean stepState=digitalReadFast2(stepPin);if(stepPinInverted){stepState=!stepState;}if(stepState != stepStateOld){stepStateOld=stepState;Serial.print("h");Serial.println(stepState+8);}}
+
+
   // listen for serial commands
   while(Serial.available() > 0) {
     buffer[sofar++]=Serial.read();
     if(buffer[sofar-1]==';') break;  // in case there are multiple instructions
+    
   }
  
   // if we hit a semi-colon, assume end of instruction.
@@ -596,5 +727,5 @@ void loop()
     // reset the buffer
     sofar=0;
   }
-  stepLight(); // call every loop cycle.
+  stepLight(); // call every loop cycle to update stepper motion.
 }

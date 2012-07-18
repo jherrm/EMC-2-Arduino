@@ -30,6 +30,8 @@ ser = serial.Serial(PORT, 115200, timeout=15)
 c = hal.component("arduino")
 c.newpin("switch-on",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("switch-off",hal.HAL_BIT,hal.HAL_IN)
+c.newpin("eStop",hal.HAL_BIT,hal.HAL_IN)
+c.newpin("probe",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("machine-state",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("axis0-cmd",hal.HAL_FLOAT,hal.HAL_IN)
 c.newpin("axis1-cmd",hal.HAL_FLOAT,hal.HAL_IN)
@@ -73,6 +75,7 @@ c.ready()
 #We save the machine state (i.e. whether it's off or on) so that we only
 #send a message to the Arduino when it changes
 machineState = c['machine-state']
+eStopState = c['eStop']
 axis0cmd = c['axis0-cmd']
 axis1cmd = c['axis1-cmd']
 axis2cmd = c['axis2-cmd']
@@ -99,7 +102,7 @@ axis8cmdOld = 0;
 
 try:
   while 1:
-    time.sleep(.001)
+    time.sleep(.01)
 
     axis0cmd = c['axis0-cmd'];
     if axis0cmd != axis0cmdOld:
@@ -314,7 +317,13 @@ try:
       if(key == "w5"):
         c['wHome'] = 1
 
-      if(key == "+S"):
+      if(key == "p0"):
+        c['switch-on'] = 1
+        c['switch-off'] = 0
+      if(key == "p1"):
+        c['switch-on'] = 0
+        c['switch-off'] = 1
+      if(key == "pt"):
         #If the machine is currently on, we turn it off, and vice-versa
         if(machineState == 1):
           c['switch-on'] = 0
@@ -323,6 +332,15 @@ try:
           c['switch-on'] = 1
           c['switch-off'] = 0
 
+      if(key == "e0"):
+        c['eStop'] = 0
+      if(key == "e1"):
+        c['eStop'] = 1
+
+      if(key == "P0"):
+        c['probe'] = 0
+      if(key == "P1"):
+        c['probe'] = 1
 
 except KeyboardInterrupt:
     ser.write("-R-G");

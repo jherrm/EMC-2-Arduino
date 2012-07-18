@@ -27,4 +27,6 @@ net home-x => arduino.xHome
 net home-y => arduino.yHome
 net home-z => arduino.zHome
 net home-a => arduino.aHome
+net estop-out => arduino.eStop
+net probe-in => arduino.probe
 
