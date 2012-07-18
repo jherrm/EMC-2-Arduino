@@ -1,4 +1,6 @@
 /*
+This work is public domain.
+
 Please note: Although there are a LOT pin settings here.
 You can get by with as few as TWO pins per Axis. (dir & step)
 ie: 3 axies = 6 pins used. (minimum)
@@ -200,6 +202,7 @@ Note concerning switches: Be smart!
 #define stepPin   A7
 
 // Signal inversion for real switch users. (false = ground trigger signal, true = +5vdc trigger signal.)
+// Note: Inverted switches will need pull-down resistors (less than 10kOhm) to lightly ground the signal wires.
 #define xMinPinInverted false
 #define yMinPinInverted false
 #define zMinPinInverted false

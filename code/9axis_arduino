@@ -3,6 +3,9 @@
 #    by Colin Kingsbury (http://ckcnc.wordpress.com_)
 #    Inspired by the earlier example from Jeff Epler
 #
+#    Modified by Duane Bishop for use with EMC-2-Arduino
+#	(https://github.com/dewy721/EMC-2-Arduino)
+#
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation; either version 2 of the License, or
@@ -32,6 +35,11 @@ c.newpin("switch-on",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("switch-off",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("eStop",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("probe",hal.HAL_BIT,hal.HAL_IN)
+c.newpin("start",hal.HAL_BIT,hal.HAL_IN)
+c.newpin("stop",hal.HAL_BIT,hal.HAL_IN)
+c.newpin("pause",hal.HAL_BIT,hal.HAL_IN)
+c.newpin("resume",hal.HAL_BIT,hal.HAL_IN)
+c.newpin("step",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("machine-state",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("axis0-cmd",hal.HAL_FLOAT,hal.HAL_IN)
 c.newpin("axis1-cmd",hal.HAL_FLOAT,hal.HAL_IN)
@@ -317,30 +325,63 @@ try:
       if(key == "w5"):
         c['wHome'] = 1
 
+#power
       if(key == "p0"):
-        c['switch-on'] = 1
-        c['switch-off'] = 0
-      if(key == "p1"):
         c['switch-on'] = 0
         c['switch-off'] = 1
+      if(key == "p1"):
+        c['switch-on'] = 1
+        c['switch-off'] = 0
       if(key == "pt"):
         #If the machine is currently on, we turn it off, and vice-versa
         if(machineState == 1):
-          c['switch-on'] = 0
-          c['switch-off'] = 1
-        else:
           c['switch-on'] = 1
           c['switch-off'] = 0
+        else:
+          c['switch-on'] = 0
+          c['switch-off'] = 1
 
+#eStop
       if(key == "e0"):
-        c['eStop'] = 0
-      if(key == "e1"):
         c['eStop'] = 1
+      if(key == "e1"):
+        c['eStop'] = 0
 
+#probe
       if(key == "P0"):
-        c['probe'] = 0
-      if(key == "P1"):
         c['probe'] = 1
+      if(key == "P1"):
+        c['probe'] = 0
+
+#program start
+      if(key == "h0"):
+        c['start'] = 0
+      if(key == "h1"):
+        c['start'] = 1
+
+#program stop
+      if(key == "h2"):
+        c['stop'] = 0
+      if(key == "h3"):
+        c['stop'] = 1
+
+#program pause
+      if(key == "h4"):
+        c['pause'] = 1
+      if(key == "h5"):
+        c['pause'] = 0
+
+#program resume
+      if(key == "h6"):
+        c['resume'] = 1
+      if(key == "h7"):
+        c['resume'] = 0
+
+#program step
+      if(key == "h8"):
+        c['step'] = 1
+      if(key == "h9"):
+        c['step'] = 0
 
 except KeyboardInterrupt:
     ser.write("-R-G");
