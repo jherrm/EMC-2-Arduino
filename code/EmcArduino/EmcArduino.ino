@@ -313,7 +313,7 @@ Note concerning switches: Be smart!
 /*
   This indicator led will let you know how hard you pushing the Arduino.
 
-  To test: Issue a G0 in the GUI command to send all axies to near min limits then to near max limits.
+  To test: Issue a G0 in the GUI command to send all axes to near min limits then to near max limits.
   Watch the indicator led as you do this. Adjust "Max Velocity" setting to suit.
 
   MOSTLY ON  = You can safely go faster.
