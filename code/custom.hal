@@ -88,7 +88,7 @@ unlinkp axis.0.pos-lim-sw-in
 net max-X => arduino.xMaxLmt => axis.0.pos-lim-sw-in
 
 unlinkp axis.0.motor-pos-cmd
-net xpos-cmd axis.0.motor-pos-cmd => arduino.axis0-cmd
+net xpos-cmd axis.0.motor-pos-cmd => arduino.xPosCmd
 
 
 ### Y-axis (axis.1) ###
@@ -102,7 +102,7 @@ unlinkp axis.1.pos-lim-sw-in
 net max-Y => arduino.yMaxLmt => axis.1.pos-lim-sw-in
 
 unlinkp axis.1.motor-pos-cmd
-net ypos-cmd axis.1.motor-pos-cmd => arduino.axis1-cmd
+net ypos-cmd axis.1.motor-pos-cmd => arduino.yPosCmd
 
 
 ### Z-axis (axis.2) ###
@@ -116,7 +116,7 @@ unlinkp axis.2.pos-lim-sw-in
 net max-Z => arduino.zMaxLmt => axis.2.pos-lim-sw-in
 
 unlinkp axis.2.motor-pos-cmd
-net zpos-cmd axis.2.motor-pos-cmd => arduino.axis2-cmd
+net zpos-cmd axis.2.motor-pos-cmd => arduino.zPosCmd
 
 
 ### A-axis (axis.3) ###
@@ -130,7 +130,7 @@ unlinkp axis.3.pos-lim-sw-in
 net max-A => arduino.aMaxLmt => axis.3.pos-lim-sw-in
 
 unlinkp axis.3.motor-pos-cmd
-net apos-cmd axis.3.motor-pos-cmd => arduino.axis3-cmd
+net apos-cmd axis.3.motor-pos-cmd => arduino.aPosCmd
 
 
 ### B-axis (axis.4) ###
@@ -144,7 +144,7 @@ net apos-cmd axis.3.motor-pos-cmd => arduino.axis3-cmd
 #net max-B => arduino.bMaxLmt => axis.4.pos-lim-sw-in
 
 #unlinkp axis.4.motor-pos-cmd
-#net bpos-cmd axis.4.motor-pos-cmd => arduino.axis4-cmd
+#net bpos-cmd axis.4.motor-pos-cmd => arduino.bPosCmd
 
 
 ### C-axis (axis.5) ###
@@ -158,7 +158,7 @@ net apos-cmd axis.3.motor-pos-cmd => arduino.axis3-cmd
 #net max-C => arduino.cMaxLmt => axis.5.pos-lim-sw-in
 
 #unlinkp axis.5.motor-pos-cmd
-#net cpos-cmd axis.5.motor-pos-cmd => arduino.axis5-cmd
+#net cpos-cmd axis.5.motor-pos-cmd => arduino.cPosCmd
 
 
 ### U-axis (axis.6) ###
@@ -172,7 +172,7 @@ net apos-cmd axis.3.motor-pos-cmd => arduino.axis3-cmd
 #net max-U => arduino.uMaxLmt => axis.6.pos-lim-sw-in
 
 #unlinkp axis.6.motor-pos-cmd
-#net upos-cmd axis.6.motor-pos-cmd => arduino.axis6-cmd
+#net upos-cmd axis.6.motor-pos-cmd => arduino.uPosCmd
 
 
 ### V-axis (axis.7) ###
@@ -186,7 +186,7 @@ net apos-cmd axis.3.motor-pos-cmd => arduino.axis3-cmd
 #net max-V => arduino.vMaxLmt => axis.7.pos-lim-sw-in
 
 #unlinkp axis.7.motor-pos-cmd
-#net vpos-cmd axis.7.motor-pos-cmd => arduino.axis7-cmd
+#net vpos-cmd axis.7.motor-pos-cmd => arduino.vPosCmd
 
 
 ### W-axis (axis.8) ###
@@ -200,5 +200,5 @@ net apos-cmd axis.3.motor-pos-cmd => arduino.axis3-cmd
 #net max-W => arduino.wMaxLmt => axis.8.pos-lim-sw-in
 
 #unlinkp axis.7.motor-pos-cmd
-#net wpos-cmd axis.8.motor-pos-cmd => arduino.axis8-cmd
+#net wpos-cmd axis.8.motor-pos-cmd => arduino.wPosCmd
 
