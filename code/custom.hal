@@ -199,6 +199,6 @@ net apos-cmd axis.3.motor-pos-cmd => arduino.aPosCmd
 #unlinkp axis.8.pos-lim-sw-in
 #net max-W => arduino.wMaxLmt => axis.8.pos-lim-sw-in
 
-#unlinkp axis.7.motor-pos-cmd
+#unlinkp axis.8.motor-pos-cmd
 #net wpos-cmd axis.8.motor-pos-cmd => arduino.wPosCmd
 
