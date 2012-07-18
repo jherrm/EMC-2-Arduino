@@ -1,9 +1,10 @@
 
-void jog(long x, long y, long z) {
+void jog(long x, long y, long z, long a) {
   // do some tests here to validate x, y, and z.
   pos_x=x;
   pos_y=y;
   pos_z=z;
+  pos_a=a;
  //         moveTo('X',pos_x);
  //         moveTo('Y',pos_y);
  //         moveTo('Z',pos_z);

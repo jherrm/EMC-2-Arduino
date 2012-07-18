@@ -28,7 +28,8 @@ int sofar;
 float pos_x;
 float pos_y;
 float pos_z;
-char itoaBuff[64];
+float pos_a;
+char itoaBuff[48];
 
 int xLimitOld=-1;
 int yLimitOld=-1;
@@ -39,7 +40,16 @@ long oldTimeX=-999999;
 long oldTimeY=-999999;
 long oldTimeZ=-999999;
 long lcdTimeOld;
-long targetX = 1;
-long targetY = 1;
-long targetZ = 1;
-
+long targetX=1;
+long targetY=1;
+long targetZ=1;
+long targetA=1;
+long currentX=1;
+long currentY=1;
+long currentZ=1;
+long currentA=1;
+int stepModeX=4;
+int stepModeY=4;
+int stepModeZ=4;
+int stepModeA=4;
+long rollTime=0; // rollover dectection.

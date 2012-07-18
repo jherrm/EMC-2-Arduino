@@ -1,23 +1,63 @@
 // Adjust these to reflect EMC's limits *1000000
-#define xMinLimit -500000
-#define yMinLimit -250000
-#define zMinLimit -1500000
-#define xMaxLimit 11000000
-#define yMaxLimit 70000000
-#define zMaxLimit 15000000
+#define xMinLimit -100000 //-500000
+#define yMinLimit -10000 //-250000
+#define zMinLimit -100000
+#define aMinLimit -100000
+#define xMaxLimit 140000
+#define yMaxLimit 140000
+#define zMaxLimit 140000
+#define aMaxLimit 140000
+#define stepsPerInchX 200
+#define stepsPerInchY 200
+#define stepsPerInchZ 200
+#define stepsPerInchA 200
 
-#define xServoTolerance 1 // Slop allowance, too little = oscillation vs. too much = sloppy deadzone, inaccuracy.
-#define yServoTolerance 2 // Ditto.
 
 // Pin config section
-#define pwrSwitch 42 // For toggling power button within the EMC application window.
+#define pwrSwitch -1 // For toggling power button within the EMC application window.
 
-#define encoderXa 20 // Your quadrature encoder pins go here.
-#define encoderXb 22
-#define encoderYa 21
-#define encoderYb 23
+#define microSteppingPins 3 // Number of microstepping pins for each channel. (Set to 0 to disable.)
+#define minStepTime 50 // in MICRO seconds.
+#define chanXms1 45
+#define chanXms2 47
+#define chanXms3 49
+#define chanYms1 44
+#define chanYms2 46
+#define chanYms3 48
+#define chanZms1 31
+#define chanZms2 29
+#define chanZms3 27
+#define chanAms1 30
+#define chanAms2 28
+#define chanAms3 26
+
+#define xDirPin 43
+#define yDirPin 42
+#define zDirPin 33
+#define aDirPin 32
+
+#define xEnablePin 38
+#define yEnablePin 39
+#define zEnablePin 37
+#define aEnablePin 36
+
+#define xStepPin 41
+#define yStepPin 40
+#define zStepPin 35
+#define aStepPin 34
+
+#define xSleepPin 41
+#define ySleepPin 41
+#define zSleepPin 41
+#define aSleepPin 41
+
+#define xResetPin 51
+#define yResetPin 50
+#define zResetPin 25
+#define aResetPin 24
 
   // pin config for the "Official Aruino Motor Shield"
+
 #define loadX A0 // not used. Yet?
 #define loadY A1 // not used. Yet?
 #define pwmX 3
@@ -30,26 +70,34 @@
 #define dirY 13
 #define enableX 9
 #define enableY 8
-#define zSolenoid 27
+#define zSolenoid -1
+
+  // limit switches
+#define xHomePin 7
+#define yHomePin 6
+#define xHomePos -11200
+#define yHomePos -3250
+
+  // connection keep alive. (in milliseconds)
+# define idleTime 1000
 
   // lcd config
 #define lcdColumns 8
 #define lcdRows 2
-#define lcdRS 53
-#define lcdEN 52
-#define lcdD4 50
-#define lcdD5 51
-#define lcdD6 48
-#define lcdD7 49
+#define lcdRS -1
+#define lcdEN -1
+#define lcdD4 -1
+#define lcdD5 -1
+#define lcdD6 -1
+#define lcdD7 -1
 
   // ATX psu control
-#define atxPowerCtrl A15     // Usually the PSU's green wire. (We bring this LOW to turn PSU on.)
-#define atxPowerState 36     // Usually the PSU's gray wire. (Use a diode, ie. Arduino --|<|-- PSU, else lights blink when PSU sleeps.)
-#define atxPowerLed 35       // Just an output led pin for visual feedback.
+#define atxPowerCtrl -1     // Usually the PSU's green wire. (We bring this LOW to turn PSU on.)
+#define atxPowerState -1     // Usually the PSU's gray wire. (Use a diode, ie. Arduino --|<|-- PSU, else lights blink when PSU sleeps.)
+#define atxPowerLed -1       // Just an output led pin for visual feedback.
 #define atxPowerTimeout 1000 // How long to wait before shutting down once EMC has been closed. (milliSeconds) 
 
 //Libraries to include are as follows:
 #include <LiquidCrystal.h>     // Standard issue arduino library, most likely you already have this one.
 #include <digitalWriteFast.h>  // Found at http://code.google.com/p/digitalwritefast/downloads/list get the safe one.
-#include <Encoder.h>           // Found at http://www.pjrc.com/teensy/td_libs_Encoder.html
 
