@@ -2,7 +2,7 @@
 # This file will not be overwritten when you run stepconf again
 
 #First load the Python user module named /user/bin/9axis_arduino with the name 'arduino'
-loadusr -Wn arduino 9axis_arduino
+loadusr -Wn arduino /usr/bin/9axis_arduino
 
 #Second 'unlinkp' our pins to make them available for use.
 # Then use 'net' to recreate/hook into them.
@@ -46,6 +46,27 @@ net ProgramStep arduino.step => halui.program.step
 	# Touch probe
 unlinkp motion.probe-input
 net probe arduino.probe => motion.probe-input
+
+	# Spindle power
+unlinkp motion.spindle-on
+net spindle-On arduino.spindleEnable <= motion.spindle-on
+
+	# Spindle direction
+unlinkp motion.spindle-reverse
+net spindle-Dir arduino.spindleDirection <= motion.spindle-reverse
+
+	# Spindle at speed
+unlinkp motion.spindle-at-speed
+net spindle-at-speed arduino.spindleAtSpeed => motion.spindle-at-speed
+
+	# Coolant flood
+unlinkp iocontrol.0.coolant-flood
+net flood arduino.coolantFlood <= iocontrol.0.coolant-flood
+
+	# Coolant mist
+unlinkp iocontrol.0.coolant-mist
+net mist arduino.coolantMist <= iocontrol.0.coolant-mist
+
 
 ###############################################################################
 ##### Now on to the axies, if you don't have a given axis comment out the #####

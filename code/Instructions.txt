@@ -19,7 +19,7 @@ How to going in 7 easy steps:
 6. Open a Terminal window and do the following:
 
 	copy the 9axis_arduino file to /usr/bin/ with something like:
-		sudo cp ~/Downloads/EmcArduino_06b/9axis_arduino /usr/bin
+		sudo cp ~/Downloads/EmcArduino_07b/9axis_arduino /usr/bin
 
 	then make it executable with,
 		sudo chmod +x /usr/bin/9axis_arduino

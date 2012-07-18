@@ -42,7 +42,10 @@ Note concerning switches: Be smart!
 #include <digitalWriteFast.h> // http://code.google.com/p/digitalwritefast/
 
 #define BAUD    (115200)
-#define MAX_BUF (64)
+
+// These will be used in the near future.
+#define VERSION "00072"      // 5 caracters
+#define ROLE    "ALL-IN-ONE" // 10 characters
 
 #define stepsPerInchX 3200
 #define stepsPerInchY 3200
@@ -192,14 +195,33 @@ Note concerning switches: Be smart!
 #define wMaxPin -1
 
 #define powerSwitchIsMomentary true // Set to true if your using a momentary switch.
-#define powerPin  A0
-#define eStopPin  A1 // You really, REALLY should have this.
-#define probePin  A2
-#define startPin  A3
-#define stopPin   A4
-#define pausePin  A5
-#define resumePin A6
-#define stepPin   A7
+#define powerPin    A0 // Power switch. Optional
+#define powerLedPin -1 // Power indicator. Optional
+
+#define eStopPin         A1 // E-Stop switch. You really, REALLY should have this one.
+#define eStopLedPin      -1 // E-Stop indicator. Optional
+
+#define probePin  A2 // CNC Touch probe input.     Optional
+#define startPin  A3 // CNC Program start switch.  Optional
+#define stopPin   A4 // CNC Stop program switch.   Optional
+#define pausePin  A5 // CNC Pause program switch.  Optional
+#define resumePin A6 // CNC Resume program switch. Optional
+#define stepPin   A7 // CNC Program step switch.   Optional
+
+// Spindle pin config
+#define spindleEnablePin         -1 // Optional
+#define spindleEnableInverted    false // Set to true if you need +5v to activate.
+#define spindleDirection         -1 // Optional
+#define spindleDirectionInverted false // Set to true if spindle runs in reverse.
+
+#define spindleTach      -1 // Must be an interrupt pin. Optional.
+                            // UNO can use pin 2 or 3.
+                            // Mega2560 can use 2,3,18,19,20 or 21.
+
+#define coolantMistPin   -1 // Controls coolant mist pump.   Optional
+#define coolantFloodPin  -1 // Controls coolant flood pump.  Optional
+#define powerSupplyPin   -1 // Controls power supply ON/OFF. Optional
+#define powerSupplyInverted true // Set to "true" for +5v = ON
 
 // Signal inversion for real switch users. (false = ground trigger signal, true = +5vdc trigger signal.)
 // Note: Inverted switches will need pull-down resistors (less than 10kOhm) to lightly ground the signal wires.
@@ -278,6 +300,16 @@ Note concerning switches: Be smart!
 #define vMax 15.1
 #define wMax 15.1
 
+#define giveFeedBackX false
+#define giveFeedBackY false
+#define giveFeedBackZ false
+#define giveFeedBackA false
+#define giveFeedBackB false
+#define giveFeedBackC false
+#define giveFeedBackU false
+#define giveFeedBackV false
+#define giveFeedBackW false
+
 /*
   This indicator led will let you know how hard you pushing the Arduino.
 
@@ -307,7 +339,7 @@ boolean dirState8=true;
 /////////////////////////////END OF USER SETTINGS///////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-char buffer[MAX_BUF];
+char buffer[128];
 int sofar;
  
 float pos_x;
@@ -320,8 +352,12 @@ float pos_u;
 float pos_v;
 float pos_w;
 
+float revs_in=0;
+float spindleRPSin=0;
+
 boolean stepState=LOW;
 unsigned long stepTimeOld=0;
+unsigned long spindleTimeOld=0;
 long stepper0Pos=0;
 long stepper0Goto=0;
 long stepper1Pos=0;
@@ -415,11 +451,36 @@ boolean stopStateOld=false;
 boolean pauseStateOld=false;
 boolean resumeStateOld=false;
 boolean stepStateOld=false;
+int globalBusy=0;
 
 long divisor=1000000; // input divisor. Our HAL script wont send the six decimal place floats that EMC cranks out.
                       // A simple workaround is to multply it by 1000000 before sending it over the wire.
                       // So here we have to put the decimal back to get the real numbers.
                       // Used in: processCommand()
+
+boolean psuState=powerSupplyInverted;
+boolean spindleState=spindleDirectionInverted;
+
+float fbx=1;
+float fby=1;
+float fbz=1;
+float fba=1;
+float fbb=1;
+float fbc=1;
+float fbu=1;
+float fbv=1;
+float fbw=1;
+
+float fbxOld=0;
+float fbyOld=0;
+float fbzOld=0;
+float fbaOld=0;
+float fbbOld=0;
+float fbcOld=0;
+float fbuOld=0;
+float fbvOld=0;
+float fbwOld=0;
+
 
 void jog(float x, float y, float z, float a, float b, float c, float u, float v, float w)
 {
@@ -432,7 +493,6 @@ void jog(float x, float y, float z, float a, float b, float c, float u, float v,
   pos_u=u;
   pos_v=v;
   pos_w=w;
-
   // Handle our limit switches.
     // Compressed to save visual space. Otherwise it would be several pages long!
     
@@ -520,10 +580,15 @@ void processCommand()
     float vv=pos_v;
     float ww=pos_w;
 
+    float ss=revs_in;
+
   char *ptr=buffer;
-  while(ptr && ptr<buffer+sofar) {
+  while(ptr && ptr<buffer+sofar)
+  {
     ptr=strchr(ptr,' ')+1;
     switch(*ptr) {
+      
+      // These are axis move commands
       case 'x': case 'X': xx=atof(ptr+1); xx=xx/divisor; break;
       case 'y': case 'Y': yy=atof(ptr+1); yy=yy/divisor; break;
       case 'z': case 'Z': zz=atof(ptr+1); zz=zz/divisor; break;
@@ -533,11 +598,18 @@ void processCommand()
       case 'u': case 'U': uu=atof(ptr+1); uu=uu/divisor; break;
       case 'v': case 'V': vv=atof(ptr+1); vv=vv/divisor; break;
       case 'w': case 'W': ww=atof(ptr+1); ww=ww/divisor; break;
+      
+      // Spindle speed command. In revs per second
+      case 's': case 'S': ss=atof(ptr+1); spindleRPSin=ss; break;
+
     default: ptr=0; break;
     }
   }
-  // An Optional LCD Readout call could go here.
   jog(xx,yy,zz,aa,bb,cc,uu,vv,ww);
+  if(globalBusy<15)
+  {
+    // Insert LCD call here. (Updated when mostly idle.) Future project.
+  }
 }
 
 void stepLight() // Set by jog() && Used by loop()
@@ -557,7 +629,17 @@ void stepLight() // Set by jog() && Used by loop()
     if(stepper6Pos != stepper6Goto){busy++;if(stepper6Pos > stepper6Goto){digitalWriteFast2(dirPin6,!dirState6);digitalWriteFast2(stepPin6,stepState);stepper6Pos--;}else{digitalWriteFast2(dirPin6, dirState6);digitalWriteFast2(stepPin6,stepState);stepper6Pos++;}}
     if(stepper7Pos != stepper7Goto){busy++;if(stepper7Pos > stepper7Goto){digitalWriteFast2(dirPin7,!dirState7);digitalWriteFast2(stepPin7,stepState);stepper7Pos--;}else{digitalWriteFast2(dirPin7, dirState7);digitalWriteFast2(stepPin7,stepState);stepper7Pos++;}}
     if(stepper8Pos != stepper8Goto){busy++;if(stepper8Pos > stepper8Goto){digitalWriteFast2(dirPin8,!dirState8);digitalWriteFast2(stepPin8,stepState);stepper8Pos--;}else{digitalWriteFast2(dirPin8, dirState8);digitalWriteFast2(stepPin8,stepState);stepper8Pos++;}}
-    if(busy){digitalWriteFast2(idleIndicator,LOW);}else{digitalWriteFast2(idleIndicator,HIGH);}
+    if(busy){digitalWriteFast2(idleIndicator,LOW);if(globalBusy<255){globalBusy++;}}else{digitalWriteFast2(idleIndicator,HIGH);if(globalBusy>0){globalBusy--;}
+      if(giveFeedBackX){fbx=stepper0Pos/4/(stepsPerInchX*0.5);if(!busy){if(fbx!=fbxOld){fbxOld=fbx;Serial.print("fx");Serial.println(fbx,6);}}}
+      if(giveFeedBackY){fby=stepper1Pos/4/(stepsPerInchY*0.5);if(!busy){if(fby!=fbyOld){fbyOld=fby;Serial.print("fy");Serial.println(fby,6);}}}
+      if(giveFeedBackZ){fbz=stepper2Pos/4/(stepsPerInchZ*0.5);if(!busy){if(fbz!=fbzOld){fbzOld=fbz;Serial.print("fz");Serial.println(fbz,6);}}}
+      if(giveFeedBackA){fba=stepper3Pos/4/(stepsPerInchA*0.5);if(!busy){if(fba!=fbaOld){fbaOld=fba;Serial.print("fa");Serial.println(fba,6);}}}
+      if(giveFeedBackB){fbb=stepper4Pos/4/(stepsPerInchB*0.5);if(!busy){if(fbb!=fbbOld){fbbOld=fbb;Serial.print("fb");Serial.println(fbb,6);}}}
+      if(giveFeedBackC){fbc=stepper5Pos/4/(stepsPerInchC*0.5);if(!busy){if(fbc!=fbcOld){fbcOld=fbc;Serial.print("fc");Serial.println(fbc,6);}}}
+      if(giveFeedBackU){fbu=stepper6Pos/4/(stepsPerInchU*0.5);if(!busy){if(fbu!=fbuOld){fbuOld=fbu;Serial.print("fu");Serial.println(fbu,6);}}}
+      if(giveFeedBackV){fbv=stepper7Pos/4/(stepsPerInchV*0.5);if(!busy){if(fbv!=fbvOld){fbvOld=fbv;Serial.print("fv");Serial.println(fbv,6);}}}
+      if(giveFeedBackW){fbw=stepper8Pos/4/(stepsPerInchW*0.5);if(!busy){if(fbw!=fbwOld){fbwOld=fbw;Serial.print("fw");Serial.println(fbw,6);}}}
+    }
 
     stepTimeOld=curTime;
   }
@@ -598,8 +680,69 @@ void stepMode(int axis, int mode) // May be omitted in the future. (Undecided)
   if(axis == 8 || 9){if(mode!=stepModeW){digitalWriteFast2(chanWms1,ms1);digitalWriteFast2(chanWms2,ms2);digitalWriteFast2(chanWms3,ms3);stepModeW=count;}}
 }
 
+int determinInterrupt(int val)
+{
+  if(val<0) return -1;
+  if(val==2) return 0;
+  if(val==3) return 1;
+  if(val==18) return 5;
+  if(val==19) return 4;
+  if(val==20) return 3;
+  if(val==21) return 2;
+}
+
+volatile unsigned long spindleRevs=0;
+float spindleRPS=0;
+float spindleRPM=0;
+
+void countSpindleRevs()
+{
+  spindleRevs++;
+}
+
+float updateSpindleRevs()
+{
+  unsigned long spindleTime=millis();
+  if(spindleTime - spindleTimeOld >= 100)
+  {
+    spindleRPS=spindleRevs*10.0;
+    spindleRPM=spindleRPS*60.0;
+    spindleRevs=0;
+  }
+}
+
+boolean spindleEnabled=false;
+boolean spindleEnableState=spindleEnableInverted;
+
+boolean spindleAtSpeed()
+{
+  if(spindleTach>0)
+  {
+    if(spindleRPSin<spindleRPS)
+    {
+      if(spindleRPSin*1.05<spindleRPS || !spindleEnabled)
+      { /* Slow down. */
+        if(spindleEnablePin>0){digitalWriteFast2(spindleEnablePin,!spindleEnableState);}
+      }else{
+        if(spindleEnabled)
+        { /* Speed up. */
+          if(spindleEnablePin>0){digitalWriteFast2(spindleEnablePin,spindleEnableState);}
+        }
+      }
+      return true;
+    }else{
+      return false;
+    }
+  }else{
+    return spindleEnabled; // No tach? We'll fake it.
+  }
+}
+
 void setup()
 {
+  // If using a spindle tachometer, setup an interrupt for it.
+  if(spindleTach>0){int result=determinInterrupt(spindleTach);attachInterrupt(result,countSpindleRevs,FALLING);}
+  
   // Setup Min limit switches.
   if(useRealMinX){pinMode(xMinPin,INPUT);if(!xMinPinInverted)digitalWriteFast2(xMinPin,HIGH);}
   if(useRealMinY){pinMode(yMinPin,INPUT);if(!yMinPinInverted)digitalWriteFast2(yMinPin,HIGH);}
@@ -677,7 +820,7 @@ void setup()
   pinMode(chanVms1,OUTPUT);pinMode(chanVms2,OUTPUT);pinMode(chanVms3,OUTPUT);
   pinMode(chanWms1,OUTPUT);pinMode(chanWms2,OUTPUT);pinMode(chanWms3,OUTPUT);
   
-  // Setup eStop, power and probe pins.
+  // Setup eStop, power, start, stop, pause, resume, program step, spindle, coolant, LED and probe pins.
   if(useEstopSwitch){pinMode(eStopPin,INPUT);if(!eStopPinInverted){digitalWriteFast2(eStopPin,HIGH);}}
   if(usePowerSwitch){pinMode(powerPin,INPUT);if(!powerPinInverted){digitalWriteFast2(powerPin,HIGH);}}
   if(useProbe){pinMode(probePin,INPUT);if(!probePinInverted){digitalWriteFast2(probePin,HIGH);}}
@@ -686,6 +829,14 @@ void setup()
   if(usePauseSwitch){pinMode(pausePin,INPUT);if(!pausePinInverted){digitalWriteFast2(pausePin,HIGH);}}
   if(useResumeSwitch){pinMode(resumePin,INPUT);if(!resumePinInverted){digitalWriteFast2(resumePin,HIGH);}}
   if(useStepSwitch){pinMode(stepPin,INPUT);if(!stepPinInverted){digitalWriteFast2(stepPin,HIGH);}}
+  if(powerLedPin > 0){pinMode(powerLedPin,OUTPUT);digitalWriteFast2(powerLedPin,HIGH);}
+  if(eStopLedPin>0){pinMode(eStopLedPin,OUTPUT);digitalWriteFast2(eStopLedPin,LOW);}
+  if(spindleEnablePin>0){pinMode(spindleEnablePin,OUTPUT);digitalWriteFast2(spindleEnablePin,HIGH);}
+  if(spindleDirection>0){pinMode(spindleDirection,OUTPUT);digitalWriteFast2(spindleDirection,LOW);}
+  if(spindleTach>0){pinMode(spindleTach,INPUT);digitalWriteFast2(spindleTach,HIGH);}
+  if(coolantMistPin>0){pinMode(coolantMistPin,OUTPUT);digitalWriteFast2(coolantMistPin,LOW);}
+  if(coolantFloodPin>0){pinMode(coolantFloodPin,OUTPUT);digitalWriteFast2(coolantFloodPin,LOW);}
+  if(powerSupplyPin>0){pinMode(powerSupplyPin,OUTPUT);digitalWriteFast2(powerSupplyPin,psuState);}
 
   // Setup idle indicator led.
   pinMode(idleIndicator,OUTPUT);
@@ -699,6 +850,8 @@ void setup()
   // Initialize serial command buffer.
   sofar=0;
 }
+
+boolean spindleAtSpeedStateOld;
 
 void loop()
 {
@@ -718,7 +871,32 @@ void loop()
     if(buffer[sofar-1]==';') break;  // in case there are multiple instructions
     
   }
+  // Received a "+" turn something on.
+  if(sofar>0 && buffer[sofar-3]=='+') {
+    if(sofar>0 && buffer[sofar-2]=='P') { /* Power LED & PSU   ON */ if(powerLedPin>0){digitalWriteFast2(powerLedPin,HIGH);}if(powerSupplyPin>0){digitalWriteFast2(powerSupplyPin,psuState);}}
+    if(sofar>0 && buffer[sofar-2]=='E') { /* E-Stop Indicator  ON */ if(eStopLedPin>0){digitalWriteFast2(eStopLedPin,HIGH);}}
+    if(sofar>0 && buffer[sofar-2]=='S') { /* Spindle power     ON */ spindleEnabled=true;}
+    if(sofar>0 && buffer[sofar-2]=='D') { /* Spindle direction CW */ if(spindleDirection>0){digitalWriteFast2(spindleDirection,spindleState);}}
+    if(sofar>0 && buffer[sofar-2]=='M') { /* Coolant Mist      ON */ if(coolantMistPin>0){digitalWriteFast2(coolantMistPin,HIGH);}}
+    if(sofar>0 && buffer[sofar-2]=='F') { /* Coolant Flood     ON */ if(coolantFloodPin>0){digitalWriteFast2(coolantFloodPin,HIGH);}}
+  }
+
+  // Received a "-" turn something off.
+  if(sofar>0 && buffer[sofar-3]=='-') {
+    if(sofar>0 && buffer[sofar-2]=='P') { /* Power LED & PSU   OFF */ if(powerLedPin>0){digitalWriteFast2(powerLedPin,LOW);}if(powerSupplyPin>0){digitalWriteFast2(powerSupplyPin,!psuState);}}
+    if(sofar>0 && buffer[sofar-2]=='E') { /* E-Stop Indicator  OFF */ if(eStopLedPin>0){digitalWriteFast2(eStopLedPin,LOW);}}
+    if(sofar>0 && buffer[sofar-2]=='S') { /* Spindle power     OFF */ spindleEnabled=false;}
+    if(sofar>0 && buffer[sofar-2]=='D') { /* Spindle direction CCW */ if(spindleDirection>0){digitalWriteFast2(spindleDirection,!spindleState);}}
+    if(sofar>0 && buffer[sofar-2]=='M') { /* Coolant Mist      OFF */ if(coolantMistPin>0){digitalWriteFast2(coolantMistPin,LOW);}}
+    if(sofar>0 && buffer[sofar-2]=='F') { /* Coolant Flood     OFF */ if(coolantFloodPin>0){digitalWriteFast2(coolantFloodPin,LOW);}}
+  }
  
+  // Received a "?" about something give an answer.
+  if(sofar>0 && buffer[sofar-3]=='?') {
+    if(sofar>0 && buffer[sofar-2]=='V') { /* Report version */ Serial.println(VERSION);}
+    if(sofar>0 && buffer[sofar-2]=='R') { /* Report role    */ Serial.println(ROLE);}
+  }
+  
   // if we hit a semi-colon, assume end of instruction.
   if(sofar>0 && buffer[sofar-1]==';') {
  
@@ -730,5 +908,7 @@ void loop()
     // reset the buffer
     sofar=0;
   }
+  updateSpindleRevs();
+  if(!globalBusy){boolean spindleAtSpeedState=spindleAtSpeed();if(spindleAtSpeedState != spindleAtSpeedStateOld){spindleAtSpeedStateOld=spindleAtSpeedState;Serial.print("S");Serial.println(spindleAtSpeedState);}}
   stepLight(); // call every loop cycle to update stepper motion.
 }

@@ -35,6 +35,11 @@ c.newpin("switch-on",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("switch-off",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("eStop",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("probe",hal.HAL_BIT,hal.HAL_IN)
+c.newpin("spindleEnable",hal.HAL_BIT,hal.HAL_IN)
+c.newpin("spindleDirection",hal.HAL_BIT,hal.HAL_IN)
+c.newpin("spindleAtSpeed",hal.HAL_BIT,hal.HAL_IN)
+c.newpin("coolantMist",hal.HAL_BIT,hal.HAL_IN)
+c.newpin("coolantFlood",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("start",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("stop",hal.HAL_BIT,hal.HAL_IN)
 c.newpin("pause",hal.HAL_BIT,hal.HAL_IN)
@@ -96,7 +101,7 @@ axis8cmd = c['axis8-cmd']
 
 #Check if the machine is on and set the LED accordingly
 if(machineState != 1):
-  ser.write("+R")
+  ser.write("+P")
 
 axis0cmdOld = 0;
 axis1cmdOld = 0;
@@ -107,6 +112,10 @@ axis5cmdOld = 0;
 axis6cmdOld = 0;
 axis7cmdOld = 0;
 axis8cmdOld = 0;
+coolantMistOld = 0;
+coolantFloodOld = 0;
+spindleEnableOld = 0;
+spindleDirectionOld = 0;
 
 try:
   while 1:
@@ -193,17 +202,48 @@ try:
       ser.write(";");
       ser.write("\n");
 
+    spindleEnable = c['spindleEnable'];
+    if spindleEnable != spindleEnableOld:
+      spindleEnableOld = spindleEnable;
+      if spindleEnable == 1:
+        ser.write("+S;");
+      else:
+        ser.write("-S;");
+
+    spindleDirection = c['spindleDirection'];
+    if spindleDirection != spindleDirectionOld:
+      spindleDirectionOld = spindleDirection;
+      if spindleDirection == 1:
+        ser.write("+D;");
+      else:
+        ser.write("-D;");
+
+
+
+    coolantMist = c['coolantMist'];
+    if coolantMist != coolantMistOld:
+      coolantMistOld = coolantMist;
+      if coolantMist == 1:
+        ser.write("+M;");
+      else:
+        ser.write("-M;");
+
+    coolantFlood = c['coolantFlood'];
+    if coolantFlood != coolantFloodOld:
+      coolantFloodOld = coolantFlood;
+      if coolantFlood == 1:
+        ser.write("+F;");
+      else:
+        ser.write("-F;");
+
     #Check the machine State
     if(machineState != c['machine-state']):
       if(c['machine-state'] == 1):
-        #The machine is on, so turn on the green LED and turn off the red one
-        ser.write("+G")
-        ser.write("-R")
-
+        #The machine is on, so turn on the power LED
+        ser.write("+P;")
       else:
         #opposite of above
-        ser.write("-G")
-        ser.write("+R")
+        ser.write("-P;")
       #update the machine state variable
       machineState = c['machine-state']
     #Check to see if we have a message waiting from the Arduino
@@ -383,7 +423,13 @@ try:
       if(key == "h9"):
         c['step'] = 0
 
+#spindle at speed signal
+      if(key == "S1"):
+        c['spindleAtSpeed'] = 1
+      if(key == "S0"):
+        c['spindleAtSpeed'] = 0
+
 except KeyboardInterrupt:
-    ser.write("-R-G");
+    ser.write("-P;");
     raise SystemExit
 
