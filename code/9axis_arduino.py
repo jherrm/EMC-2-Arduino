@@ -106,8 +106,9 @@ coolantFloodOld = 0;
 spindleEnableOld = 0;
 spindleDirectionOld = 0;
 
-jog_scale = 1000000
-
+jog_multiplier = 1000000 # Our HAL script won't send the six decimal place floats that EMC cranks out.
+                         # A simple workaround is to multply it by 1000000 before sending it over the wire.
+                         # This must be reversed in the arduino firmware via a divisor.
 
 try:
   while 1:
@@ -118,7 +119,7 @@ try:
       if axis_pos != axes_pos[axis]:
         axes_pos[axis] = axis_pos;
         ser.write("jog " + axis.upper());
-        ser.write(repr(axis_pos * jog_scale))
+        ser.write(repr(axis_pos * jog_multiplier))
         ser.write(";");
         ser.write("\n");
 
